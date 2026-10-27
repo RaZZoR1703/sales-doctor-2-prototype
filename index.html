@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sales Doctor 2.0 — прототип</title>
+<style>
+:root{--blue:#16305c;--blue2:#24509a;--bg:#f4f6fb;--card:#fff;--text:#182234;--muted:#667085;--green:#12805c;--red:#c0392b;--amber:#b7791f;--line:#e4e8f0}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,Arial,sans-serif;background:var(--bg);color:var(--text)}
+header{background:var(--blue);color:#fff;padding:14px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+header h1{font-size:18px;margin:0}.brand b{color:#7fd1ff}
+.role{margin-left:auto;display:flex;align-items:center;gap:8px}
+select,button,input{font:inherit}
+select,input{padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:#fff}
+button{padding:8px 12px;border:0;border-radius:8px;background:var(--blue2);color:#fff;cursor:pointer}
+button.ghost{background:#eef2f9;color:var(--blue)}
+.layout{display:grid;grid-template-columns:230px 1fr;min-height:calc(100vh - 58px)}
+nav{background:#fff;border-right:1px solid var(--line);padding:14px}
+nav button{display:block;width:100%;text-align:left;background:none;color:var(--text);padding:10px 12px;border-radius:8px;margin-bottom:4px}
+nav button.active,.nav button:hover{background:#eaf0ff;color:var(--blue)}
+main{padding:20px;max-width:1250px}
+.grid{display:grid;gap:14px}.k4{grid-template-columns:repeat(4,1fr)}.k3{grid-template-columns:repeat(3,1fr)}.k2{grid-template-columns:repeat(2,1fr)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px}
+.kpi .label{color:var(--muted);font-size:12px}.kpi .value{font-size:24px;font-weight:700;margin-top:4px}
+.badge{display:inline-block;padding:3px 8px;border-radius:999px;font-size:12px;font-weight:600}
+.b-green{background:#e5f6ef;color:var(--green)}.b-red{background:#fdecea;color:var(--red)}.b-amber{background:#fff5e0;color:var(--amber)}.b-gray{background:#eef1f6;color:#4b5565}
+table{width:100%;border-collapse:collapse;font-size:14px}th,td{padding:10px;border-bottom:1px solid var(--line);text-align:left}th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase}
+tr:hover td{background:#fafbfe}.right{text-align:right}
+.bar{height:8px;background:#e8edf6;border-radius:99px;overflow:hidden}.bar i{display:block;height:100%;background:var(--blue2)}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.modal{position:fixed;inset:0;background:rgba(16,24,40,.45);display:none;align-items:center;justify-content:center;padding:16px}
+.modal.open{display:flex}.modal .box{background:#fff;border-radius:14px;padding:20px;max-width:640px;width:100%;max-height:90vh;overflow:auto}
+.field{margin-bottom:12px}.field label{display:block;font-size:13px;color:var(--muted);margin-bottom:5px}.field input,.field select{width:100%}
+.warn{background:#fff5e0;border:1px solid #f2d9a4;color:#7a5410;padding:10px 12px;border-radius:8px;margin-bottom:12px;display:none}
+@media(max-width:900px){.layout{grid-template-columns:1fr}nav{display:flex;overflow-x:auto;gap:6px}.k4,.k3,.k2{grid-template-columns:1fr 1fr}}
+@media(max-width:600px){.k4,.k3,.k2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand"><h1><b>Sales</b> Doctor 2.0</h1></div>
+  <div class="role"><span>Роль:</span>
+    <select id="role" onchange="render()">
+      <option value="boss">Руководитель</option>
+      <option value="sup">Супервайзер</option>
+      <option value="agent">Торговый агент</option>
+      <option value="fin">Финансист</option>
+    </select>
+  </div>
+</header>
+<div class="layout">
+<nav id="nav"></nav>
+<main id="app"></main>
+</div>
+
+<div class="modal" id="modal"><div class="box" id="modalBox"></div></div>
+
+<script>
+const agents=[
+ {id:1,name:"Тожиев Икром",plan:120000000,fact:104500000,visits:142,orders:96,newClients:7,debt:18400000,overdue:5200000},
+ {id:2,name:"Хумоюн Вансел",plan:95000000,fact:88200000,visits:118,orders:81,newClients:4,debt:9700000,overdue:1800000},
+ {id:3,name:"Азизжон Комилов",plan:80000000,fact:61300000,visits:104,orders:58,newClients:2,debt:23100000,overdue:11400000},
+ {id:4,name:"Жавохир Каримов",plan:70000000,fact:73500000,visits:97,orders:74,newClients:6,debt:4200000,overdue:0},
+ {id:5,name:"Сардор Рахимов",plan:60000000,fact:39800000,visits:76,orders:39,newClients:1,debt:15600000,overdue:8900000}
+];
+const clients=[
+ {id:1,name:"Osiyo Savdo",type:"Магазин",region:"Чиланзар",agent:1,debt:4200000,overdue:1200000,last:"2026-10-26",status:"Активный",limit:6000000},
+ {id:2,name:"Cafe Registan",type:"HoReCa",region:"Мирабад",agent:2,debt:2700000,overdue:0,last:"2026-10-25",status:"Активный",limit:4000000},
+ {id:3,name:"Bek Market",type:"Магазин",region:"Сергели",agent:3,debt:8900000,overdue:5400000,last:"2026-10-21",status:"Активный",limit:8000000},
+ {id:4,name:"Yangi Bozor Optom",type:"Опт",region:"Олмазор",agent:1,debt:12500000,overdue:3100000,last:"2026-10-24",status:"Активный",limit:15000000},
+ {id:5,name:"Nur Shopp",type:"Магазин",region:"Юнусабад",agent:4,debt:0,overdue:0,last:"2026-10-27",status:"Новый",limit:3000000},
+ {id:6,name:"Family Market",type:"Магазин",region:"Шайхонтохур",agent:5,debt:6300000,overdue:4100000,last:"2026-10-18",status:"Активный",limit:7000000},
+ {id:7,name:"Chaykhona Navoiy",type:"HoReCa",region:"Мирабад",agent:2,debt:1500000,overdue:0,last:"2026-10-26",status:"Активный",limit:2500000},
+ {id:8,name:"Grand Retail",type:"Сеть",region:"Чиланзар",agent:4,debt:9800000,overdue:0,last:"2026-10-27",status:"Активный",limit:20000000}
+];
+const products=[
+ {sku:"SD-001",name:"Вода 1л",cat:"Напитки",price:6000,cost:4200,stock:1240},
+ {sku:"SD-002",name:"Сок 1л",cat:"Напитки",price:12000,cost:8200,stock:640},
+ {sku:"SD-003",name:"Чипсы 150г",cat:"Снеки",price:15000,cost:10500,stock:310},
+ {sku:"SD-004",name:"Печенье 300г",cat:"Кондитерка",price:18000,cost:12600,stock:85},
+ {sku:"SD-005",name:"Кофе 250г",cat:"Напитки",price:45000,cost:31000,stock:220}
+];
+let orders=[
+ {id:"ORD-000101",date:"2026-10-26",client:1,agent:1,total:8400000,status:"Доставлен",pay:"Наличные",exp:"Экспедитор 1"},
+ {id:"ORD-000102",date:"2026-10-26",client:3,agent:3,total:12600000,status:"В доставке",pay:"Отсрочка",exp:"Экспедитор 2"},
+ {id:"ORD-000103",date:"2026-10-27",client:4,agent:1,total:21500000,status:"Новый",pay:"Отсрочка",exp:""},
+ {id:"ORD-000104",date:"2026-10-27",client:8,agent:4,total:9800000,status:"Подтверждён",pay:"Payme",exp:"Экспедитор 1"},
+ {id:"ORD-000105",date:"2026-10-27",client:2,agent:2,total:3200000,status:"Доставлен",pay:"Click",exp:"Экспедитор 3"}
+];
+const route=[
+ {client:1,time:"09:00",status:"Посещена",order:8400000},
+ {client:4,time:"10:30",status:"Заказ создан",order:21500000},
+ {client:3,time:"12:00",status:"В пути",order:0},
+ {client:6,time:"14:00",status:"Не посещена",order:0},
+ {client:5,time:"16:00",status:"Не посещена",order:0}
+];
+const fmt=n=>new Intl.NumberFormat("ru-RU").format(n)+" сум";
+const agentName=id=>agents.find(a=>a.id==id)?.name||"—";
+const clientName=id=>clients.find(c=>c.id==id)?.name||"—";
+const badgeStatus=s=>({"Доставлен":"b-green","Новый":"b-gray","Подтверждён":"b-amber","В доставке":"b-amber","Отменён":"b-red","Возврат":"b-red"}[s]||"b-gray");
+const menu={
+ boss:[["dash","Дашборд"],["clients","Клиенты"],["orders","Заказы"],["debt","Дебиторка"],["kpi","KPI"],["route","Маршрут"],["stock","Склад"]],
+ sup:[["dash","Дашборд"],["clients","Клиенты"],["orders","Заказы"],["kpi","KPI"],["route","Маршрут"]],
+ agent:[["route","Мой маршрут"],["orders","Заказы"],["clients","Клиенты"]],
+ fin:[["dash","Дашборд"],["debt","Дебиторка"],["orders","Заказы"],["stock","Склад"]]
+};
+let page="dash";
+function nav(){const r=document.getElementById("role").value;document.getElementById("nav").innerHTML=menu[r].map(([k,t])=>`<button class="${page==k?"active":""}" onclick="page='${k}';render()">${t}</button>`).join("")}
+function kpi(label,value,cls=""){return `<div class="card kpi"><div class="label">${label}</div><div class="value ${cls}">${value}</div></div>`}
+function table(head,rows){return `<div class="card"><table><thead><tr>${head.map(h=>`<th>${h}</th>`).join("")}</tr></thead><tbody>${rows}</tbody></table></div>`}
+function render(){
+ nav();const r=document.getElementById("role").value;const app=document.getElementById("app");
+ if(page=="dash"){
+  const fact=agents.reduce((s,a)=>s+a.fact,0),plan=agents.reduce((s,a)=>s+a.plan,0),debt=clients.reduce((s,c)=>s+c.debt,0),over=clients.reduce((s,c)=>s+c.overdue,0);
+  app.innerHTML=`<h2>Дашборд</h2><div class="grid k4">
+   ${kpi("Выручка, месяц",fmt(fact))}${kpi("План / факт",Math.round(fact/plan*100)+"%")}
+   ${kpi("Дебиторка",fmt(debt),"text-danger")}${kpi("Просрочено",fmt(over),"text-danger")}</div>
+   <div class="grid k2" style="margin-top:14px">
+   <div class="card"><h3>Выполнение плана по агентам</h3>${agents.map(a=>{const p=Math.round(a.fact/a.plan*100);return `<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between"><span>${a.name}</span><b>${p}%</b></div><div class="bar"><i style="width:${Math.min(p,100)}%;background:${p>=100?"var(--green)":p>=80?"var(--amber)":"var(--red)"}"></i></div></div>`}).join("")}</div>
+   ${table(["Клиент","Долг","Просрочка","Агент"],[...clients].sort((a,b)=>b.debt-a.debt).slice(0,6).map(c=>`<tr><td>${c.name}</td><td>${fmt(c.debt)}</td><td><span class="badge ${c.overdue?"b-red":"b-green"}">${fmt(c.overdue)}</span></td><td>${agentName(c.agent)}</td></tr>`).join(""))}</div>`;
+ }
+ else if(page=="clients"){
+  app.innerHTML=`<h2>Клиенты</h2><div class="toolbar"><input id="q" placeholder="Поиск клиента" oninput="filterClients()"><button onclick="openClient()">+ Новый клиент</button></div><div id="clientTable"></div>`;
+  filterClients();
+ }
+ else if(page=="orders"){
+  app.innerHTML=`<h2>Заказы</h2><div class="toolbar"><button onclick="openOrder()">+ Создать заказ</button><button class="ghost" onclick="exportCSV()">Экспорт CSV</button></div>
+  ${table(["№","Дата","Клиент","Агент","Сумма","Оплата","Статус","Действие"],orders.map(o=>`<tr><td>${o.id}</td><td>${o.date}</td><td>${clientName(o.client)}</td><td>${agentName(o.agent)}</td><td class="right">${fmt(o.total)}</td><td>${o.pay}</td><td><span class="badge ${badgeStatus(o.status)}">${o.status}</span></td><td><button class="ghost" onclick="nextStatus('${o.id}')">Далее</button></td></tr>`).join(""))}`;
+ }
+ else if(page=="debt"){
+  const rows=[...clients].sort((a,b)=>b.overdue-a.overdue).map(c=>`<tr><td>${c.name}</td><td>${fmt(c.debt)}</td><td><span class="badge ${c.overdue?"b-red":"b-green"}">${fmt(c.overdue)}</span></td><td>${agentName(c.agent)}</td><td>${c.last}</td></tr>`).join("");
+  app.innerHTML=`<h2>Дебиторка</h2>${table(["Клиент","Текущий долг","Просрочка","Агент","Последний визит"],rows)}`;
+ }
+ else if(page=="kpi"){
+  app.innerHTML=`<h2>KPI агентов</h2>${table(["Агент","План","Факт","Выполнение","Визиты","Заказы","Конверсия","Долг"],agents.map(a=>{const p=Math.round(a.fact/a.plan*100);return `<tr><td>${a.name}</td><td>${fmt(a.plan)}</td><td>${fmt(a.fact)}</td><td><span class="badge ${p>=100?"b-green":p>=80?"b-amber":"b-red"}">${p}%</span></td><td>${a.visits}</td><td>${a.orders}</td><td>${Math.round(a.orders/a.visits*100)}%</td><td>${fmt(a.debt)}</td></tr>`}).join(""))}`;
+ }
+ else if(page=="route"){
+  app.innerHTML=`<h2>Маршрут агента на сегодня</h2><div class="warn" id="limitWarn">Превышен кредитный лимит клиента. Заказ требует подтверждения супервайзера.</div>
+  ${table(["Время","Клиент","Статус","Заказ","Действия"],route.map(x=>{const c=clients.find(c=>c.id==x.client);return `<tr><td>${x.time}</td><td>${c.name}<br><small>${c.region}</small></td><td><span class="badge ${x.status=="Не посещена"?"b-gray":x.status=="В пути"?"b-amber":"b-green"}">${x.status}</span></td><td>${x.order?fmt(x.order):"—"}</td><td><button onclick="makeOrder(${c.id})">Создать заказ</button></td></tr>`}).join(""))}`;
+ }
+ else if(page=="stock"){
+  app.innerHTML=`<h2>Склад</h2>${table(["SKU","Товар","Категория","Цена","Себестоимость","Остаток"],products.map(p=>`<tr><td>${p.sku}</td><td>${p.name}</td><td>${p.cat}</td><td class="right">${fmt(p.price)}</td><td class="right">${fmt(p.cost)}</td><td><span class="badge ${p.stock<100?"b-red":"b-green"}">${p.stock} шт</span></td></tr>`).join(""))}`;
+ }
+}
+function filterClients(){const q=(document.getElementById("q").value||"").toLowerCase();
+ document.getElementById("clientTable").innerHTML=table(["Клиент","Тип","Регион","Агент","Долг","Просрочка","Статус"],clients.filter(c=>c.name.toLowerCase().includes(q)).map(c=>`<tr><td>${c.name}</td><td>${c.type}</td><td>${c.region}</td><td>${agentName(c.agent)}</td><td>${fmt(c.debt)}</td><td><span class="badge ${c.overdue?"b-red":"b-green"}">${fmt(c.overdue)}</span></td><td>${c.status}</td></tr>`).join(""))}
+function openClient(){openModal(`<h3>Новый клиент</h3><div class="field"><label>Название</label><input id="cname"></div><div class="field"><label>Тип</label><select id="ctype"><option>Магазин</option><option>HoReCa</option><option>Опт</option><option>Сеть</option></select></div><div class="field"><label>Регион</label><input id="creg"></div><button onclick="saveClient()">Сохранить</button> <button class="ghost" onclick="closeModal()">Отмена</button>`)}
+function saveClient(){const name=cname.value.trim();if(!name)return alert("Введите название");clients.push({id:clients.length+1,name,type:ctype.value,region:creg.value||"Ташкент",agent:1,debt:0,overdue:0,last:"—",status:"Новый",limit:3000000});closeModal();page="clients";render()}
+function openOrder(){openModal(`<h3>Новый заказ</h3><div class="field"><label>Клиент</label><select id="oclient">${clients.map(c=>`<option value="${c.id}">${c.name}</option>`).join("")}</select></div><div class="field"><label>Товар</label><select id="oproduct">${products.map(p=>`<option value="${p.sku}">${p.name} — ${fmt(p.price)}</option>`).join("")}</select></div><div class="field"><label>Количество</label><input id="oqty" type="number" value="10"></div><div class="field"><label>Оплата</label><select id="opay"><option>Наличные</option><option>Payme</option><option>Click</option><option>Отсрочка</option></select></div><div id="owarn" class="warn"></div><button onclick="saveOrder()">Создать заказ</button> <button class="ghost" onclick="closeModal()">Отмена</button>`)}
+function makeOrder(cid){openOrder();document.getElementById("oclient").value=cid}
+function saveOrder(){const cid=+oclient.value,c=clients.find(x=>x.id==cid),p=products.find(x=>x.sku==oproduct.value),qty=+oqty.value||0,total=p.price*qty;
+ if(c.debt+total>c.limit){document.getElementById("owarn").style.display="block";document.getElementById("owarn").textContent=`Превышен кредитный лимит: ${fmt(c.debt+total)} из ${fmt(c.limit)}.`}
+ orders.unshift({id:"ORD-"+String(100000+orders.length+106),date:"2026-10-27",client:cid,agent:c.agent,total,status:"Новый",pay:opay.value,exp:""});
+ c.debt+=total;closeModal();page="orders";render()}
+function nextStatus(id){const o=orders.find(x=>x.id==id);const flow={"Новый":"Подтверждён","Подтверждён":"В доставке","В доставке":"Доставлен"};if(flow[o.status]){if(flow[o.status]=="В доставке"&&!o.exp)o.exp="Экспедитор 1";o.status=flow[o.status]}render()}
+function exportCSV(){const rows=[["№","Дата","Клиент","Агент","Сумма","Оплата","Статус"],...orders.map(o=>[o.id,o.date,clientName(o.client),agentName(o.agent),o.total,o.pay,o.status])];
+ const csv="\ufeff"+rows.map(r=>r.join(";")).join("\n");const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.download="orders.csv";a.click()}
+function openModal(html){modalBox.innerHTML=html;modal.classList.add("open")}
+function closeModal(){modal.classList.remove("open")}
+render();
+</script>
+</body>
+</html>
